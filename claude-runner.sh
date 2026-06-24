@@ -365,7 +365,11 @@ EOF
         exit 1
       fi
       echo "── Wave: ${#ready[@]} task(s), up to $JOBS in parallel ──"
-      printf '%s\n' "${ready[@]}" | xargs -n1 -P "$JOBS" -I{} "$SCRIPT" _run-one {}
+      if ! printf '%s\n' "${ready[@]}" | xargs -n1 -P "$JOBS" -I{} "$SCRIPT" _run-one {}; then
+        echo "✗ run-all: 1+ task(s) failed this wave (kept in todo, see $WORKDIR/logs/)." >&2
+        echo "  Re-run '$0 run-all' after fixing, or '$0 reset' to start over." >&2
+        exit 1
+      fi
     done
     echo "All tasks done."
     ;;
@@ -380,7 +384,8 @@ EOF
     moved=0
     for f in "$DONE_DIR"/*.md; do
       [ -e "$f" ] || continue
-      awk '/^## Result/{exit} {print}' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+      awk '/^## Result/{exit} {print}' "$f" > "$f.tmp"
+      mv "$f.tmp" "$f"
       mv "$f" "$TODO_DIR/"
       moved=$((moved + 1))
     done
@@ -401,7 +406,7 @@ EOF
     echo "Workdir: $WORKDIR"
     echo
     echo "=== $DOC ==="
-    [ -f "$DOC" ] && cat "$DOC" || echo "(not created)"
+    if [ -f "$DOC" ]; then cat "$DOC"; else echo "(not created)"; fi
     echo
     echo "=== TODO ==="
     if ls "$TODO_DIR"/*.md >/dev/null 2>&1; then
@@ -416,7 +421,11 @@ EOF
     fi
     echo
     echo "=== DONE ==="
-    ls "$DONE_DIR" 2>/dev/null | sed 's/^/  /' || echo "  (empty)"
+    if ls "$DONE_DIR"/*.md >/dev/null 2>&1; then
+      ls "$DONE_DIR" | sed 's/^/  /'
+    else
+      echo "  (empty)"
+    fi
     echo
     echo "=== LOGS (latest 20, newest first) ==="
     if [ -d logs ] && ls logs/*.log >/dev/null 2>&1; then
