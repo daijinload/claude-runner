@@ -9,6 +9,8 @@
 - bash 3.2 以上（macOS 標準でも動く）
 - [`claude`](https://docs.anthropic.com/claude/docs/claude-code) CLI が PATH にある
 - `jq` 推奨（無くてもログが raw JSONL になるだけで動く）
+- /tmpとかシンボリックリンクとか macos or linux向けなのでwindowsだとそのままでは動かない
+  - 所詮スクリプト一本なのでAIにwindows版を作ってもらうか windows on linuxや仮想環境推奨っす
 
 ## インストール
 
@@ -32,7 +34,7 @@ cd ~/myproject
 
 # 最初に対話モードでclaudeを立ち上げて仕様を策定。会話が決着すると DESIGN.md と タスクファイルが出来上がる。
 # 出来るだけ分割したり並列作業できるように仕様と分割を吟味してださい。
-# hogeの部分はフォルダが見やすいようにするための識別子でなんでも良い。
+# hogeの部分はフォルダが見やすいようにするための識別子で何を指定しても良い。
 claude-runner.sh plan hoge
 
 # 出来上がったファイルなどの確認
