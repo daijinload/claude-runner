@@ -2,12 +2,6 @@
 
 タスク単位で `claude -p` を別プロセス起動する Bash ランナー。長セッションで `compact` が走るとコンテキストにノイズが乗って精度が落ちる問題を、毎タスクをまっさら状態で実行することで回避する。
 
-- タスク分割 + `<!-- depends: -->` での依存解決
-- Wave 方式の並列実行（`xargs -P`）
-- 試行ごとログ保存（claude の stream-json を `jq` で整形）
-- 進捗ストリームをターミナルにリアルタイム出力（既定オン）
-- `reset` で done を todo に巻き戻して何度でもやり直し
-
 詳細は [ARCHITECTURE.md](./ARCHITECTURE.md) を参照。
 
 ## 前提
@@ -17,6 +11,8 @@
 - `jq` 推奨（無くてもログが raw JSONL になるだけで動く）
 
 ## インストール
+
+シェルスクリプト単体で動くのでどこかに置いて実行権限をつけてください。
 
 ```bash
 # どこかにクローン
@@ -34,16 +30,19 @@ cp claude-runner.sh ~/src/scripts/ && chmod +x ~/src/scripts/claude-runner.sh
 ```bash
 cd ~/myproject
 
-# 対話 claude で壁打ち。DESIGN.md とタスクファイルを保存
-claude-runner.sh plan some-feature
+# 最初に対話モードでclaudeを立ち上げて仕様を策定。会話が決着すると DESIGN.md と タスクファイルが出来上がる。
+# 出来るだけ分割したり並列作業できるように仕様と分割を吟味してださい。
+# hogeの部分はフォルダが見やすいようにするための識別子でなんでも良い。
+claude-runner.sh plan hoge
 
-# 状況確認
+# 出来上がったファイルなどの確認
 claude-runner.sh show
 
-# 依存解決して並列実行（進捗が [NNN-slug] プレフィックス付きで stdout に流れる）
+# タスクを依存順に実行（進捗が [NNN-slug] プレフィックス付きで stdout に流れる）
+# 途中で落ちてもタスクの状態を見て引き継いで実行される
 claude-runner.sh run-all
 
-# git reset 後など、同じタスクをもう一度走らせたいとき
+# 一旦リセットして最初からやりたい場合に下記を実行する
 claude-runner.sh reset && claude-runner.sh run-all
 ```
 
