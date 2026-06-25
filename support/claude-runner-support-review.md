@@ -107,8 +107,12 @@ severity 基準:
 
 ### diff-bugs
 
-- **scope**: diff の追加行 (`+`) に対するバグ。null deref / 型不一致 / off-by-one / silent failure / 例外握りつぶし
-- **anti-scope**: cleanup（dead 化）は `dead-cleanup`。コメント rot は `comment-quality`。層の崩れは `layer-responsibility`
+- **scope**: diff の追加行 (`+`) のロジックエラーで、**コード単独で断定できる**もの。null deref / 型不一致 / off-by-one / loop 境界 / リソースリーク / 並行性 / silent failure / 例外握りつぶし
+- **anti-scope**:
+  - プロジェクトルールの逐語引用が必要なものは `rule-compliance`
+  - 層責務の逸脱は `layer-responsibility`
+  - cleanup（dead 化）は `dead-cleanup`
+  - コメント rot は `comment-quality`
 - **検出方法**: `git diff origin/main...HEAD` の `+` 行を関数単位で読む
 
 ### dead-cleanup
@@ -138,7 +142,8 @@ severity 基準:
 ### rule-compliance
 
 - **scope**: プロジェクト固有ルール (`.claude/rules/**` / コーディング規約 / ADR) との照合。各 finding は逐語引用ベース
-- **anti-scope**: 汎用バグは `diff-bugs` / dead は `dead-cleanup`
+- **適用条件**: ルールファイルが対象プロジェクトに存在するときのみ採用。無ければこの dimension は使わない
+- **anti-scope**: ルールに依拠せず判断できる汎用バグは `diff-bugs` / dead は `dead-cleanup`
 - **検出方法**: 適用ルールファイルを Read し、対象差分との突合を grep で確認
 
 ---

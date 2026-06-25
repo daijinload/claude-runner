@@ -46,7 +46,7 @@ claude-runner-support.sh reset
 |---|---|
 | `plan [name]` | 対話 claude を起動して壁打ち。`work.md` と `review.md` を workdir に保存。終了時に貼り付け用メッセージを 2 つ stdout に出す。`name` は workdir 識別子（任意） |
 | `show` | workdir の状態（ファイル有無・行数・Result 有無）と貼り付け用メッセージを再表示 |
-| `reset` | `review-result.md` / `logs/` / `work.md` の `## Result` 以降を削除。`work.md` / `review.md` は plan の成果物なので維持 |
+| `reset` | `review-result.md` / `work.md` の `## Result` 以降を削除。`work.md` / `review.md` は plan の成果物なので維持 |
 
 ## 環境変数
 
@@ -74,7 +74,6 @@ claude-runner-support.sh reset
 ├── work.md                  # plan 出力。実装内容 + 末尾に ## Result（Work 担当 claude が追記）
 ├── review.md                # plan 出力。レビュー観点・出力先指示
 ├── review-result.md         # Review 担当 claude の出力
-├── logs/                    # 将来用（現状未使用）
 └── .project                 # プロジェクトの絶対パス
 
 ~/src/scripts/link/<sanitized-cwd> → workdir   # cwd ベース symlink

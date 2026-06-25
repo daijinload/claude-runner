@@ -11,7 +11,7 @@
 #   cd ~/myproject
 #   claude-runner-support.sh plan [name]  — 対話claudeで壁打ち。work.md と review.md を作る
 #   claude-runner-support.sh show         — 状況表示 + 貼り付け用メッセージ再表示
-#   claude-runner-support.sh reset        — review-result.md / logs / work.md の Result 削除
+#   claude-runner-support.sh reset        — review-result.md / work.md の Result 削除
 #
 # 実行モデル:
 #   plan が終わると stdout に「実装用」「レビュー用」の貼り付けメッセージを 2 つ表示する。
@@ -106,6 +106,23 @@ shift || true
 
 case "$cmd" in
   plan)
+    if [ ! -f "$REVIEW_SPEC" ]; then
+      echo "Error: REVIEW_SPEC が見つかりません: $REVIEW_SPEC" >&2
+      echo "       support 版は観点テンプレが必須です。リポジトリ同梱の" >&2
+      echo "       claude-runner-support-review.md を REVIEW_SPEC に指定してください。" >&2
+      exit 1
+    fi
+    if [ -L "$LINK_PATH" ]; then
+      prev_wd="$(readlink "$LINK_PATH")"
+      if [ -d "$prev_wd" ] && [ -f "$prev_wd/$WORK_FILE" ] && ! grep -q '^## Result' "$prev_wd/$WORK_FILE"; then
+        echo "Error: 未完了の workdir が既に存在します: $prev_wd" >&2
+        echo "       $WORK_FILE に ## Result が無いため、まだ実装が完了していません。" >&2
+        echo "       新しい plan を始めるには、先に以下のどちらかを実行してください:" >&2
+        echo "       - 旧 workdir を破棄: rm '$LINK_PATH'" >&2
+        echo "       - 旧 workdir を保持する場合は LINK_DIR を変更" >&2
+        exit 1
+      fi
+    fi
     name="${1:-}"
     project=$(pwd)
     ts=$(date +%Y%m%d-%H%M%S)
@@ -116,7 +133,7 @@ case "$cmd" in
       echo "Error: $workdir already exists." >&2
       exit 1
     fi
-    mkdir -p "$workdir/logs"
+    mkdir -p "$workdir"
     echo "$project" > "$workdir/.project"
     mkdir -p "$LINK_DIR"
     ln -sfn "$workdir" "$LINK_PATH"
@@ -124,18 +141,6 @@ case "$cmd" in
     echo "Workdir: $workdir"
     echo "Link:    $LINK_PATH -> $workdir"
     echo
-
-    review_spec_block=""
-    if [ -f "$REVIEW_SPEC" ]; then
-      review_spec_block=$(cat <<EOS
-${REVIEW_SPEC} を **必ず冒頭から末尾まで Read** してから ${REVIEW_FILE} を書いてください。
-このテンプレは ultracode の Workflow で消費される前提の dimension 設計指針と出力スキーマを定義しています。
-- dimensions は相互排他に（scope と anti-scope を必ず明示）
-- 出力スキーマ（review-result.md の構造）はテンプレ通り固定
-- カタログから取捨選択し、プロジェクトに合わせて統合・追加・削除する
-EOS
-)
-    fi
 
     echo "対話モードで claude を起動します（cwd=${project}）。"
     echo "壁打ちで設計を詰め、合意できたら ${workdir}/${WORK_FILE} と ${workdir}/${REVIEW_FILE} の 2 ファイルだけを保存してください。"
@@ -172,7 +177,11 @@ EOS
 **別窓の claude が ultracode 等で fan-out 実行することを前提**としているため、
 ${REVIEW_FILE} の構造は ${REVIEW_SPEC} の「\`review.md\` の推奨構造」セクションに従ってください。
 
-${review_spec_block}
+${REVIEW_SPEC} を **必ず冒頭から末尾まで Read** してから ${REVIEW_FILE} を書いてください。
+このテンプレは ultracode の Workflow で消費される前提の dimension 設計指針と出力スキーマを定義しています。
+- dimensions は相互排他に（scope と anti-scope を必ず明示）
+- 出力スキーマ（review-result.md の構造）はテンプレ通り固定
+- カタログから取捨選択し、プロジェクトに合わせて統合・追加・削除する
 
 書き終わったら最後に簡易チェックリスト（${REVIEW_SPEC} 末尾参照）を自分で確認:
 - 各 dimension に scope と anti-scope が両方ある
@@ -248,15 +257,7 @@ EOF
       mv "$WORK_FILE.tmp" "$WORK_FILE"
       stripped_work=1
     fi
-    removed_logs=0
-    if [ -d logs ]; then
-      for l in logs/*.log; do
-        [ -e "$l" ] || continue
-        rm -f "$l"
-        removed_logs=$((removed_logs + 1))
-      done
-    fi
-    echo "Reset: review-result=${removed_result} work.md(stripped)=${stripped_work} logs=${removed_logs}"
+    echo "Reset: review-result=${removed_result} work.md(stripped)=${stripped_work}"
     echo "       work.md / review.md は維持されています。"
     ;;
 
@@ -265,7 +266,7 @@ EOF
 Usage (cwd = project root):
   $0 plan [name]  — 対話claudeで壁打ち。work.md と review.md を作って 2 ファイルだけ保存
   $0 show         — 状況表示 + 貼り付け用メッセージ再表示
-  $0 reset        — review-result.md / logs / work.md の Result 削除（work.md / review.md は維持）
+  $0 reset        — review-result.md / work.md の Result 削除（work.md / review.md は維持）
 
 実行モデル:
   plan が終わると、別窓で claude に貼り付けるメッセージが 2 つ表示されます。
@@ -282,7 +283,7 @@ Usage (cwd = project root):
   REVIEW_SPEC=PATH plan の壁打ちで参照するレビュー観点テンプレ（既定: スクリプトと同じディレクトリの claude-runner-support-review.md）
 
 メタ情報の場所:
-  workdir: /tmp/runner-<ts>[-<slug>]/   (work.md, review.md, review-result.md, logs/, .project)
+  workdir: /tmp/runner-<ts>[-<slug>]/   (work.md, review.md, review-result.md, .project)
   symlink: $LINK_DIR/<sanitized cwd> -> workdir
            (cwd=$INVOKE_CWD のとき: $LINK_PATH)
 EOF
