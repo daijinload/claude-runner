@@ -22,9 +22,9 @@ git clone <repo-url> claude-runner
 cd claude-runner
 
 # PATH の通った場所に置く
-install -m 0755 process-runner.sh ~/.local/bin/
+install -m 0755 claude-runner-process.sh ~/.local/bin/
 # または
-cp process-runner.sh ~/src/scripts/ && chmod +x ~/src/scripts/process-runner.sh
+cp claude-runner-process.sh ~/src/scripts/ && chmod +x ~/src/scripts/claude-runner-process.sh
 ```
 
 ## クイックスタート
@@ -35,17 +35,17 @@ cd ~/myproject
 # 最初に対話モードでclaudeを立ち上げて仕様を策定。会話が決着すると DESIGN.md と タスクファイルが出来上がる。
 # 出来るだけ分割したり並列作業できるように仕様と分割を吟味してださい。
 # hogeの部分はフォルダが見やすいようにするための識別子で何を指定しても良い。
-process-runner.sh plan hoge
+claude-runner-process.sh plan hoge
 
 # 出来上がったファイルなどの確認
-process-runner.sh show
+claude-runner-process.sh show
 
 # タスクを依存順に実行（進捗が [NNN-slug] プレフィックス付きで stdout に流れる）
 # 途中で落ちてもタスクの状態を見て引き継いで実行される
-process-runner.sh run-all
+claude-runner-process.sh run-all
 
 # 一旦リセットして最初からやりたい場合に下記を実行する
-process-runner.sh reset && process-runner.sh run-all
+claude-runner-process.sh reset && claude-runner-process.sh run-all
 ```
 
 ## サブコマンド
@@ -70,7 +70,7 @@ process-runner.sh reset && process-runner.sh run-all
 | `WORKDIR` | workdir 直接指定（symlink バイパス） |
 | `LINK_DIR` | symlink 配置先（既定 `~/src/scripts/link`） |
 | `CLAUDE_BIN` | claude バイナリパス（既定 `claude`） |
-| `REVIEW_SPEC` | `plan` 後に読むレビュー観点ファイル（既定: スクリプトと同じディレクトリの `process-runner-review.md`） |
+| `REVIEW_SPEC` | `plan` 後に読むレビュー観点ファイル（既定: スクリプトと同じディレクトリの `claude-runner-process-review.md`） |
 
 未指定なら claude が `~/.claude/settings.json` の既定値を使う（ユーザ環境依存）。
 
@@ -85,7 +85,7 @@ process-runner.sh reset && process-runner.sh run-all
 - 各レビュータスクは `depends` に実装タスク全部の番号を持つ（実装→レビューの順で消化される）
 - 観点ファイルが無い／todo に実装タスクが 0 件のときは何もしない
 
-リポジトリ同梱の `process-runner-review.md` は **サンプル 2 件 (`code-quality` / `dead-code`)** だけが入った最小テンプレ。`code-quality` は重厚な観点リスト、`dead-code` は数行で済む軽量チェックの例で、**H2 セクションの長さは自由**（1 観点 1 セクションに分けて並列で走らせるのがコンセプト）。プロジェクトの観点を H2 として書き足して使う。差替は単に md を編集するだけ（スクリプトには触らない）。
+リポジトリ同梱の `claude-runner-process-review.md` は **サンプル 2 件 (`code-quality` / `dead-code`)** だけが入った最小テンプレ。`code-quality` は重厚な観点リスト、`dead-code` は数行で済む軽量チェックの例で、**H2 セクションの長さは自由**（1 観点 1 セクションに分けて並列で走らせるのがコンセプト）。プロジェクトの観点を H2 として書き足して使う。差替は単に md を編集するだけ（スクリプトには触らない）。
 
 各レビュータスクは:
 - コードの修正・コミット・push を一切しない (read-only)
