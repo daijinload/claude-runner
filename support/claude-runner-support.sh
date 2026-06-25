@@ -127,7 +127,14 @@ case "$cmd" in
 
     review_spec_block=""
     if [ -f "$REVIEW_SPEC" ]; then
-      review_spec_block="レビュー観点のテンプレートとして $REVIEW_SPEC を参照できます（必要なら読んでプロジェクト向けに整形してください）。"
+      review_spec_block=$(cat <<EOS
+${REVIEW_SPEC} を **必ず冒頭から末尾まで Read** してから ${REVIEW_FILE} を書いてください。
+このテンプレは ultracode の Workflow で消費される前提の dimension 設計指針と出力スキーマを定義しています。
+- dimensions は相互排他に（scope と anti-scope を必ず明示）
+- 出力スキーマ（review-result.md の構造）はテンプレ通り固定
+- カタログから取捨選択し、プロジェクトに合わせて統合・追加・削除する
+EOS
+)
     fi
 
     echo "対話モードで claude を起動します（cwd=${project}）。"
@@ -161,14 +168,17 @@ case "$cmd" in
 別窓で実装担当 claude がこの ${WORK_FILE} を読んで実装し、末尾に ## Result を追記します。
 そのため「読むだけで実装可能」な完結性を持たせてください（必要なファイルパス・コマンド・期待結果を明示）。
 
-並行して ${workdir}/${REVIEW_FILE} にレビュー観点を書きます:
-  # Review for <タイトル>
-
-  ## Scope — レビュー対象 (差分の範囲、ファイル群)
-  ## 観点 — チェックする項目を箇条書きで（${WORK_FILE} の内容に応じて必要なものを選定）
-  ## 出力 — ${workdir}/${REVIEW_RESULT_FILE} に Summary / Findings / Questions の構成で書く旨を明示
+並行して ${workdir}/${REVIEW_FILE} にレビュー観点を書きます。${REVIEW_FILE} は
+**別窓の claude が ultracode 等で fan-out 実行することを前提**としているため、
+${REVIEW_FILE} の構造は ${REVIEW_SPEC} の「\`review.md\` の推奨構造」セクションに従ってください。
 
 ${review_spec_block}
+
+書き終わったら最後に簡易チェックリスト（${REVIEW_SPEC} 末尾参照）を自分で確認:
+- 各 dimension に scope と anti-scope が両方ある
+- 2 つの dimension の scope が重なっていない
+- 出力スキーマのフィールド名と順序が固定
+- Scope に対象言語と自動生成除外条件を書いた
 
 応答スタイル:
 - 簡潔に。冗長な前置きや盛った装飾を避ける
