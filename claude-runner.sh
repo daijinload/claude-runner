@@ -446,6 +446,21 @@ EOF
 
   run-all)
     enter_workdir
+    RUN_ALL_START_TIME=$SECONDS
+    RUN_ALL_START_AT=$(date '+%Y-%m-%d %H:%M:%S')
+    print_run_all_elapsed() {
+      local rc=$?
+      local elapsed=$((SECONDS - RUN_ALL_START_TIME))
+      local h=$((elapsed / 3600))
+      local m=$(((elapsed % 3600) / 60))
+      local s=$((elapsed % 60))
+      local end_at
+      end_at=$(date '+%Y-%m-%d %H:%M:%S')
+      printf '\n==> Started:  %s\n' "$RUN_ALL_START_AT"
+      printf '==> Finished: %s\n' "$end_at"
+      printf '==> Elapsed:  %02d:%02d:%02d (%ds), exit=%d\n' "$h" "$m" "$s" "$elapsed" "$rc"
+    }
+    trap print_run_all_elapsed EXIT
     while ls "$TODO_DIR"/*.md >/dev/null 2>&1; do
       ready=()
       while IFS= read -r line; do
