@@ -59,12 +59,21 @@ severity 判定基準（参考）:
 > **観点追加テンプレート**（コピペして使う）:
 >
 >     ## my-perspective
+>     <!-- runner: model=opus, effort=xhigh -->
 >
 >     何をレビューするか 1〜数行で。grep コマンド例があれば併記。
+>
+> H2 の直下行に `<!-- runner: model=..., effort=... -->` を書くと、
+> 生成されるレビュータスクに転記され、そのタスクだけ指定された
+> model/effort で claude が起動される。設計判断が必要な観点は
+> `model=opus, effort=xhigh`、パターン照合系の軽い観点は `model=sonnet`
+> 等で使い分けるとトークン消費を抑えられる。未指定なら環境変数
+> (MODEL/EFFORT) または settings.json デフォルトに従う。
 
 ---
 
 ## code-quality
+<!-- runner: model=opus, effort=xhigh -->
 
 差分の追加行 (`+`) に対して、標準的なコード品質の観点でレビューする。
 
@@ -74,7 +83,11 @@ severity 判定基準（参考）:
 - **エラーハンドリング**: error を握りつぶしていないか、catch して握りつぶし型の silent failure はないか
 
 ## dead-code
+<!-- runner: model=sonnet -->
+
 dead code がないか確認する
 
 ## duplicate-code
+<!-- runner: model=sonnet -->
+
 重複した関数を作成していないことを確認する
