@@ -76,7 +76,7 @@ claude-runner.sh reset && claude-runner.sh run-all
 
 ## レビュー観点ファイル
 
-`plan` の対話を抜けた後、`REVIEW_SPEC` の md ファイルを読み込み、その H2 (`## XXX`) セクション数ぶんの **read-only レビュータスク** を自動で todo に追加する。`run-all` で実装タスクが全部完了した後、各レビュータスクが並列で走り、結果を `~/Desktop/<workdir-slug>/review-<セクション名>.md` に書き出す。
+`plan` の対話を抜けた後、`REVIEW_SPEC` の md ファイルを読み込み、その H2 (`## XXX`) セクション数ぶんの **read-only レビュータスク** を自動で todo に追加する。`run-all` で実装タスクが全部完了した後、各レビュータスクが並列で走り、結果を `<workdir>/reviews/review-<セクション名>.md` に書き出す（symlink `$LINK_DIR/<sanitized-cwd>/reviews/` 経由でアクセス可）。
 
 仕様:
 - `# H1` セクション = 全レビュータスク共通の前文として注入
@@ -101,13 +101,12 @@ claude-runner.sh reset && claude-runner.sh run-all
 ├── tasks/
 │   ├── todo/NNN-*.md        # 未実行（実装タスク + レビュータスク）
 │   └── done/NNN-*.md        # 完了（末尾に ## Result）
+├── reviews/                 # レビュー成果物の書き出し先
+│   └── review-<section>.md  # 各レビュータスクの出力 (## Summary / ## Findings / ## Questions)
 ├── logs/NNN-slug-<ts>.log   # タスク実行ログ（試行ごと新規）
 └── .project                 # プロジェクトの絶対パス
 
-~/Desktop/<ts>[-<slug>]/     # レビュー成果物の書き出し先
-└── review-<section>.md      # 各レビュータスクの出力 (## Summary / ## Findings / ## Questions)
-
-~/src/scripts/link/<sanitized-cwd> → workdir   # cwd ベース symlink
+~/src/scripts/link/<sanitized-cwd> → workdir   # cwd ベース symlink（reviews/ もこの下でアクセス可）
 ```
 
 `<sanitized-cwd>` は cwd の `/` を `_` に置換したもの（例: `/Users/foo/proj/bar` → `Users_foo_proj_bar`）。cwd ごとに異なるので複数プロジェクト併用で衝突しない。

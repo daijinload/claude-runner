@@ -298,10 +298,8 @@ generate_review_tasks() {
     return 0
   fi
 
-  local slug
-  slug=$(basename "$workdir" | sed 's/^runner-//')
-  local desktop_dir="$HOME/Desktop/$slug"
-  mkdir -p "$desktop_dir"
+  local review_dir="$workdir/reviews"
+  mkdir -p "$review_dir"
 
   pushd "$workdir" >/dev/null
   local num
@@ -331,7 +329,7 @@ generate_review_tasks() {
 - このタスクで使う観点: \`## $title\` セクション
 
 ## 出力先
-\`$desktop_dir/review-${section_slug}.md\`
+\`$review_dir/review-${section_slug}.md\`
 
 出力ファイル構成（観点ファイルの「出力フォーマット」に従う）:
 1. \`## Summary\` — verdict (🟢 PASS / 🔴 FAIL) + critical/warning/info 件数 + 対象言語・ファイル数
@@ -350,7 +348,7 @@ EOF
   done
 
   echo "Review: added $count review task(s) to $workdir/$TODO_DIR/"
-  echo "        output dir: $desktop_dir"
+  echo "        output dir: $review_dir"
 }
 
 cmd="${1:-}"
