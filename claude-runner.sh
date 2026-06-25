@@ -459,6 +459,16 @@ EOF
       printf '\n==> Started:  %s\n' "$RUN_ALL_START_AT"
       printf '==> Finished: %s\n' "$end_at"
       printf '==> Elapsed:  %02d:%02d:%02d (%ds), exit=%d\n' "$h" "$m" "$s" "$elapsed" "$rc"
+      if [ -d "$WORKDIR/reviews" ] && ls "$WORKDIR/reviews"/*.md >/dev/null 2>&1; then
+        printf '\n=== 次の AI に渡す用プロンプト（コピペ可） ===\n'
+        printf '%s/reviews/ 配下の review-*.md を全部読んで、以下を**端的に**出して:\n\n' "$WORKDIR"
+        printf '1. 全件の表（列: 対応要否 / severity / file:line / 一行 title / 判定理由 1 行）。省略・サンプリング禁止\n'
+        printf '2. ## Questions の未回答一覧（あれば、無ければ「なし」だけ）\n'
+        printf '3. サマリ 1 行: 対応必要 N / 対応不要 N / 質問 N\n\n'
+        printf '制約: 各項目 1 行。前置き・装飾・補足説明・冗長な丁寧語禁止。詳細は質問されたら答える。\n'
+        printf '判定方針: 確信なしは「対応必要」側に倒す（保守的）。\n'
+        printf '=== ここまで ===\n'
+      fi
     }
     trap print_run_all_elapsed EXIT
     while ls "$TODO_DIR"/*.md >/dev/null 2>&1; do
