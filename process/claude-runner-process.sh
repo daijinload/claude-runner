@@ -10,16 +10,16 @@
 #
 # Usage:
 #   cd ~/myproject
-#   claude-runner.sh plan [name]   — 対話claudeで壁打ち。DESIGN.md とタスクを合意
-#   claude-runner.sh add  "<task>" — タスクファイルを追加
-#   claude-runner.sh next          — ready な先頭1件を実行
-#   claude-runner.sh run-all       — ready なものを並列実行（JOBS=並列度, 既定20）
-#   claude-runner.sh show          — 状況表示（DESIGN/TODO/DONE/LOGS）
-#   claude-runner.sh reset         — done→todo 戻す + Result削除 + ログ削除（DESIGN.md 維持）
+#   claude-runner-process.sh plan [name]   — 対話claudeで壁打ち。DESIGN.md とタスクを合意
+#   claude-runner-process.sh add  "<task>" — タスクファイルを追加
+#   claude-runner-process.sh next          — ready な先頭1件を実行
+#   claude-runner-process.sh run-all       — ready なものを並列実行（JOBS=並列度, 既定20）
+#   claude-runner-process.sh show          — 状況表示（DESIGN/TODO/DONE/LOGS）
+#   claude-runner-process.sh reset         — done→todo 戻す + Result削除 + ログ削除（DESIGN.md 維持）
 #
 # plan は対話 claude を抜けた後、実装タスクが 1 つ以上 todo にあれば
 # REVIEW_SPEC の md ファイル (既定: スクリプトと同じディレクトリの
-# claude-runner-review.md) を読んで、その H2 セクションごとに 1 本の
+# claude-runner-process-review.md) を読んで、その H2 セクションごとに 1 本の
 # read-only レビュータスクを自動で todo に追加する。
 # 観点ファイルが無い／todo が空の場合は何もしない。
 #
@@ -45,7 +45,7 @@ LINK_DIR="${LINK_DIR:-$HOME/src/scripts/link}"
 MODEL="${MODEL:-}"
 EFFORT="${EFFORT:-}"
 STREAM="${STREAM:-1}"
-REVIEW_SPEC="${REVIEW_SPEC:-$(cd "$(dirname "$0")" && pwd)/claude-runner-review.md}"
+REVIEW_SPEC="${REVIEW_SPEC:-$(cd "$(dirname "$0")" && pwd)/claude-runner-process-review.md}"
 
 # Symlink name = sanitized invocation cwd. Each project gets its own symlink.
 INVOKE_CWD="$(pwd)"
@@ -624,7 +624,7 @@ Usage (cwd = project root):
   WORKDIR=PATH     workdir 直接指定（symlink バイパス）
   LINK_DIR=PATH    symlink 配置先（既定 ~/src/scripts/link）
   CLAUDE_BIN=PATH  claude バイナリ
-  REVIEW_SPEC=PATH plan 後に読むレビュー観点ファイル（既定: スクリプトと同じディレクトリの claude-runner-review.md）
+  REVIEW_SPEC=PATH plan 後に読むレビュー観点ファイル（既定: スクリプトと同じディレクトリの claude-runner-process-review.md）
 
 メタ情報の場所:
   workdir: /tmp/runner-<ts>[-<slug>]/   (DESIGN.md, tasks/, logs/, .project)
