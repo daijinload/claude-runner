@@ -461,12 +461,12 @@ EOF
       printf '==> Elapsed:  %02d:%02d:%02d (%ds), exit=%d\n' "$h" "$m" "$s" "$elapsed" "$rc"
       if [ -d "$WORKDIR/reviews" ] && ls "$WORKDIR/reviews"/*.md >/dev/null 2>&1; then
         printf '\n=== 次の AI に渡す用プロンプト（コピペ可） ===\n'
-        printf '%s/reviews/ 配下の review-*.md を全部読んで、各 finding について以下を出して:\n\n' "$WORKDIR"
-        printf '1. 全件のリスト（severity / file:line / title の一覧、省略・要約・サンプリング禁止）\n'
-        printf '2. 各件を「対応必要」「対応不要（言いがかり / 誤検知 / 既知）」に分類し、判断理由を 1 行で添える\n'
-        printf '3. 各レビュー md の ## Questions も拾って、未回答の質問一覧として最後にまとめる\n'
-        printf '4. サマリ: 対応必要 N 件 / 対応不要 N 件 / 質問 N 件\n\n'
-        printf '判定は保守的に。確信が持てない場合は「対応必要」側に倒す。\n'
+        printf '%s/reviews/ 配下の review-*.md を全部読んで、以下を**端的に**出して:\n\n' "$WORKDIR"
+        printf '1. 全件の表（列: 対応要否 / severity / file:line / 一行 title / 判定理由 1 行）。省略・サンプリング禁止\n'
+        printf '2. ## Questions の未回答一覧（あれば、無ければ「なし」だけ）\n'
+        printf '3. サマリ 1 行: 対応必要 N / 対応不要 N / 質問 N\n\n'
+        printf '制約: 各項目 1 行。前置き・装飾・補足説明・冗長な丁寧語禁止。詳細は質問されたら答える。\n'
+        printf '判定方針: 確信なしは「対応必要」側に倒す（保守的）。\n'
         printf '=== ここまで ===\n'
       fi
     }
