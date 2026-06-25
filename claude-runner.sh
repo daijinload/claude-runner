@@ -481,10 +481,19 @@ EOF
         exit 1
       fi
       echo "── Wave: ${#ready[@]} task(s), up to $JOBS in parallel ──"
-      if ! printf '%s\n' "${ready[@]}" | xargs -n1 -P "$JOBS" -I{} "$SCRIPT" _run-one {}; then
-        echo "✗ run-all: 1+ task(s) failed this wave (kept in todo, see $WORKDIR/logs/)." >&2
+      xargs_rc=0
+      printf '%s\n' "${ready[@]}" | xargs -n1 -P "$JOBS" -I{} "$SCRIPT" _run-one {} || xargs_rc=$?
+      remaining=0
+      for f in "${ready[@]}"; do
+        [ -e "$f" ] && remaining=$((remaining + 1))
+      done
+      if [ "$remaining" -gt 0 ]; then
+        echo "✗ run-all: $remaining/${#ready[@]} task(s) failed this wave (xargs rc=$xargs_rc, kept in todo, see $WORKDIR/logs/)." >&2
         echo "  Re-run '$0 run-all' after fixing, or '$0 reset' to start over." >&2
         exit 1
+      fi
+      if [ "$xargs_rc" -ne 0 ]; then
+        echo "  (note: xargs rc=$xargs_rc but all wave tasks moved to done; treating as success)" >&2
       fi
     done
     echo "All tasks done."
