@@ -23,6 +23,13 @@
 # read-only レビュータスクを自動で todo に追加する。
 # 観点ファイルが無い／todo が空の場合は何もしない。
 #
+# タスクごとの model/effort 指定:
+#   タスクファイルの先頭付近に <!-- runner: model=opus, effort=xhigh --> と
+#   書くと、そのタスクだけ指定 model/effort で claude を起動する。
+#   観点ファイルの H2 直下に同じコメントを書くと、生成される
+#   レビュータスクに自動で転記される。
+#   優先順位: タスクファイル > 環境変数 (MODEL/EFFORT) > settings.json デフォルト
+#
 # Env: MODEL, EFFORT, JOBS, STREAM (既定 1: stdout に流す。0 で抑制),
 #      WORKDIR, LINK_DIR, CLAUDE_BIN, REVIEW_SPEC
 
@@ -113,6 +120,18 @@ task_deps() {
     | grep -E '^[0-9]+$' || true
 }
 
+# <!-- runner: model=opus, effort=xhigh --> から key の値を取り出す。
+# 区切りはカンマ or 空白。複数行 / 複数 runner コメントは先頭のみ採用。
+# マッチしない場合は空文字を返す（pipefail 下でも set -e に抵触しないよう || true）。
+task_meta() {
+  local f="$1" key="$2"
+  { grep -oE '<!-- *runner:[^>]*-->' "$f" 2>/dev/null \
+      | head -1 \
+      | grep -oE "(^|[ ,])${key}=[^ ,>]+" \
+      | sed -E "s/^[ ,]*${key}=//" \
+      | head -1; } || true
+}
+
 deps_done() {
   local f="$1" d
   while read -r d; do
@@ -186,6 +205,17 @@ run_one() {
     echo "✗ Missing: $task_abs" >&2
     return 1
   fi
+
+  # タスクファイル指定 > 環境変数 > settings.json デフォルト
+  local task_model task_effort use_model use_effort
+  task_model=$(task_meta "$task_abs" model)
+  task_effort=$(task_meta "$task_abs" effort)
+  use_model="${task_model:-$MODEL}"
+  use_effort="${task_effort:-$EFFORT}"
+  local task_flags=(--dangerously-skip-permissions)
+  [ -n "$use_model" ] && task_flags+=(--model "$use_model")
+  [ -n "$use_effort" ] && task_flags+=(--effort "$use_effort")
+
   echo "▶ Running: $task_file (log: $log_abs)"
 
   local prompt
@@ -227,8 +257,8 @@ EOF
     echo "=== started:  $(date '+%Y-%m-%d %H:%M:%S')"
     echo "=== project:  $PROJECT"
     echo "=== workdir:  $wd"
-    echo "=== model:    ${MODEL:-(settings.json default)}"
-    echo "=== effort:   ${EFFORT:-(settings.json default)}"
+    echo "=== model:    ${use_model:-(settings.json default)}${task_model:+ (from task)}"
+    echo "=== effort:   ${use_effort:-(settings.json default)}${task_effort:+ (from task)}"
     echo "==="
   } > "$log_abs"
 
@@ -236,14 +266,14 @@ EOF
   set +e
   if [ "$STREAM" = "1" ]; then
     ( cd "$PROJECT" && "$CLAUDE_BIN" -p --add-dir "$wd" \
-        --output-format stream-json --verbose "${CLAUDE_FLAGS[@]}" "$prompt" ) 2>&1 \
+        --output-format stream-json --verbose "${task_flags[@]}" "$prompt" ) 2>&1 \
       | fmt_stream \
       | tee -a "$log_abs" \
       | sed "s|^|[${task_base}] |"
     rc=${PIPESTATUS[0]}
   else
     ( cd "$PROJECT" && "$CLAUDE_BIN" -p --add-dir "$wd" \
-        --output-format stream-json --verbose "${CLAUDE_FLAGS[@]}" "$prompt" ) 2>&1 \
+        --output-format stream-json --verbose "${task_flags[@]}" "$prompt" ) 2>&1 \
       | fmt_stream >> "$log_abs"
     rc=${PIPESTATUS[0]}
   fi
@@ -288,10 +318,23 @@ generate_review_tasks() {
   done
   deps=$(echo "$deps" | xargs)
 
-  local titles=()
-  while IFS= read -r line; do
-    titles+=("$line")
-  done < <(grep -E '^## ' "$spec" | sed -E 's/^##[[:space:]]+//')
+  # 観点ファイルの H2 タイトルと、その直下行の <!-- runner: ... --> メタを並列配列で抽出。
+  local titles=() metas=()
+  while IFS=$'\t' read -r title meta; do
+    titles+=("$title")
+    metas+=("$meta")
+  done < <(awk '
+    /^## / {
+      title=$0; sub(/^##[[:space:]]+/, "", title)
+      meta=""
+      if ((getline next_line) > 0) {
+        if (match(next_line, /<!-- *runner:[^>]*-->/)) {
+          meta=substr(next_line, RSTART, RLENGTH)
+        }
+      }
+      print title "\t" meta
+    }
+  ' "$spec")
 
   if [ ${#titles[@]} -eq 0 ]; then
     echo "Review: $spec has no '## ' sections, skipping."
@@ -306,16 +349,19 @@ generate_review_tasks() {
   num=$(next_task_num)
   popd >/dev/null
 
-  local count=0 section_slug task_file title
+  local count=0 section_slug task_file title meta meta_line
   for title in "${titles[@]}"; do
     section_slug=$(slugify "$title")
     [ -z "$section_slug" ] && section_slug="section-$count"
     task_file="$workdir/$TODO_DIR/${num}-review-${section_slug}.md"
+    meta="${metas[$count]}"
+    meta_line=""
+    [ -n "$meta" ] && meta_line=$'\n'"$meta"
 
     cat > "$task_file" <<EOF
 # Review: $title
 
-<!-- depends: $deps -->
+<!-- depends: $deps -->${meta_line}
 
 このタスクは **レビュー専用**。コードの修正・コミット・push は一切行わない（read-only）。
 
